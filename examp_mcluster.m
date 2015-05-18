@@ -7,13 +7,13 @@ mparam.shift = 0;
 ms = gen_mseq(mparam,npts); % m-sequence
 ms0 = ms(:,1); % pick the first m-sequence.
 	       
-	       
-numperm = 20;
+clump_mode = 1;
+numperm = 100;
 mstimmat = NaN*ones(numperm+1,npts);
 mstimmat(1,:) = ms0(:)';
 ind = 1;thistype = 1;
 for k = 1:numperm;
-  mstimmat(k+1,:) = clumpvec(mstimmat(k,:),thistype);
+  mstimmat(k+1,:) = clumpvec(mstimmat(k,:),thistype,clump_mode);
   ind = ind + 1;
   thistype = thistype + 1;
   if thistype > Q

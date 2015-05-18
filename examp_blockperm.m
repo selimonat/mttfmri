@@ -2,9 +2,9 @@
 % example of block permutation
 
 % MAKE UP THE PERMUTED BLOCK DESIGNS
-Q = 4;npts = 240;numblocks = 2;itype = 1;doshift = 2;
+Q = 8;npts = 1000;numblocks = 10;itype = 1;doshift = 2;
 bstim = gen_block(Q,npts,numblocks,itype,doshift);
-numperm = 20;
+numperm = 1000;
 bstimmat = NaN*ones(numperm+1,npts);
 bstimmat(1,:) = bstim;
 for k = 1:numperm;

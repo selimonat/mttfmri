@@ -30,7 +30,7 @@ function y = clumpvec(x,itype,mode);
   
 
   
-if ~exist('mode'); mode = 1;end
+if nargin < 3; mode = 1;end
   
 
 y = x;

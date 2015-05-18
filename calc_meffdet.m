@@ -1,5 +1,4 @@
-function [effmat,detmat,ueffmat,udetmat] = ...
-          calc_meffdet(basevec,nummods,nevents,PS,h,V,uC,mode,approxflag,B);
+function [effmat,detmat,ueffmat,udetmat] = calc_meffdet(basevec,nummods,nevents,PS,h,V,uC,mode,approxflag,B);
 
 % Usage:
 % -----
@@ -11,7 +10,7 @@ function [effmat,detmat,ueffmat,udetmat] = ...
 %-------
 %  basevec:  stimulus pattern
 %  nummods:  number of model functions
-%  events :  [optional]  number of events, not including control state 
+%  events :  [optional]  number of events, not including control state
 %  PS     :  [optional]  matrix to project out nuisance terms
 %                        if PS is an integer, then it is interpreted
 %                        as the order of the subspace S
@@ -37,7 +36,7 @@ function [effmat,detmat,ueffmat,udetmat] = ...
 %                           ignored if empty
 %                           default = [];
 %
-%                         
+%
 % Outputs
 %-------
 % effmat: efficiency vector for general contrasts, first element is overall efficiency
@@ -52,246 +51,251 @@ function [effmat,detmat,ueffmat,udetmat] = ...
 % udetmat: detection power vector for user contrasts, first element is overall detection power
 %         other elements are the variances for each contrast
 %
-% 
+%
 %
 % Modification History:
 %----------------------
 %  020929 TTL added user contrasts input
-%  021213 TTL added some comments 
+%  021213 TTL added some comments
 %             added a approxflag mode for looking at approximations
 %             to the grammian matrix
 %  021215 TTL added basis function expansion mode
-% 
-% 
+%
+%
 % Copyright (c) 2002 UC Regents
 %
 % Send comments and questions to ttliu@ucsd.edu
 
-  if ~exist('B');
+if ~exist('B');
     B = [];
     dobasis = 0;
-  else 
+else
     if isempty(B)
-      dobasis = 0;
+        dobasis = 0;
     else
-      dobasis = 1;
+        dobasis = 1;
     end
-  end
+end
 
-  npts = length(basevec);
-  if ~exist('nevents');
-   nevents = max(basevec);
-  end
-  
-  if ~exist('approxflag'); approxflag = 0; end
+npts = length(basevec);
+if ~exist('nevents');
+    nevents = max(basevec);
+end
 
-  % hemodynamic response
-  if ~exist('h');
-    	h = hemoresp(0:(nummods-1),1.2,3,1);
-  else
+if ~exist('approxflag'); approxflag = 0; end
+
+% hemodynamic response
+if ~exist('h');
+    h = hemoresp(0:(nummods-1),1.2,3,1);
+else
     if length(h) ~= nummods
-       error('length of h must be equal to nummods');
-    end 
-  end
-  h = h(:);
-  
-  if dobasis
+        error('length of h must be equal to nummods');
+    end
+end
+h = h(:);
+
+if dobasis
     nbasis = size(B,2)/nevents;
-    Bm = B(1:nummods,1:nbasis);
-    coeff = inv(Bm'*Bm)*Bm'*h;
-    h = coeff;
-  end
+    Bm     = B(1:nummods,1:nbasis);
+    coeff  = inv(Bm'*Bm)*Bm'*h;
+    h     = coeff;
+end
 
 
-  hnorm2 = h'*h;
-  
-  % noise correlation matrix
-  if ~exist('V')
+hnorm2 = h'*h;
+
+% noise correlation matrix
+if ~exist('V')
     noisecor = 0;
-  else 
+else
     if ~isempty(V)
-      noisecor = 0;
+        noisecor = 0;
     else
-      Vi = inv(V);
-      noisecor = 1;
+        Vi = inv(V);
+        noisecor = 1;
     end
-  end
-  
-  % nuisance matrix, default is DC 
-  makePS = 0;
-  if ~exist('PS')
-      lorder = 0;
-      makePS = 1;
-  else
+end
+
+% nuisance matrix, default is DC
+makePS = 0;
+if ~exist('PS')
+    lorder = 0;
+    makePS = 1;
+else
     if(length(PS) == 1)
-      lorder = PS;
-      makePS = 1;
+        lorder = PS;
+        makePS = 1;
     end
-  end
-  
-  if makePS
+end
+
+if makePS
     S = legendremat(lorder,npts);
     if noisecor
-      % note this is not a projection matrix!
-      % but is analagous to K in the mult paper!
-      % it's done this way here for convenience
-      % so that matrix square roots are not necessary
-
-      PS = Vi-Vi*S*inv(S'*Vi*S)*S'*Vi;
+        % note this is not a projection matrix!
+        % but is analagous to K in the mult paper!
+        % it's done this way here for convenience
+        % so that matrix square roots are not necessary
+        
+        PS = Vi-Vi*S*inv(S'*Vi*S)*S'*Vi;
     else
-      PS = eye(npts,npts)-S*pinv(S);
+        PS = eye(npts,npts)-S*pinv(S);
     end
-  end
-  
-  % Handling of user specified contrasts
-  n_ucontrasts = 0;
-  if ~exist('uC')
+end
+
+% Handling of user specified contrasts
+n_ucontrasts = 0;
+if ~exist('uC')
     mode = 0;
-  else
+else
     if isempty(uC)
-      mode = 0;
+        mode = 0;
     else
-      if size(uC,2) ~= nevents
-	error('number of columns in uC must be equal to nevents');
-      end	
-      n_ucontrasts = size(uC,1);
-      if ~exist('mode') mode = 1; end
-    end      
-  end
-  
+        if size(uC,2) ~= nevents
+            error('number of columns in uC must be equal to nevents');
+        end
+        n_ucontrasts = size(uC,1);
+        if ~exist('mode') mode = 1; end
+    end
+end
 
-  hmat = kron(eye(nevents),h);
-  baseveclen = length(basevec);
-  
-  %initialize design matrix
-  X = NaN*ones(npts,nummods*nevents);
-  if nevents > 1
-   combos = nchoosek(1:nevents,2); % number of combinations of contrasts
-   ncontrasts = size(combos,1);
-  else
-   combos = 0;
-   ncontrasts = 0;
-  end    
-  neffdet = nevents + ncontrasts + 1;
-  effmat = NaN*ones(neffdet,1);
-  detmat = NaN*ones(neffdet,1);
-  ueffmat = NaN*ones(n_ucontrasts + 1,1);
-  udetmat = NaN*ones(n_ucontrasts + 1,1);
 
-  %make up design matrix;
-  for k = 1:nevents
+hmat = kron(eye(nevents),h);
+baseveclen = length(basevec);
+
+%initialize design matrix
+X = NaN*ones(npts,nummods*nevents);
+if nevents > 1
+    combos = nchoosek(1:nevents,2); % number of combinations of contrasts
+    ncontrasts = size(combos,1);
+else
+    combos = 0;
+    ncontrasts = 0;
+end
+neffdet = nevents + ncontrasts + 1;
+effmat = NaN*ones(neffdet,1);
+detmat = NaN*ones(neffdet,1);
+ueffmat = NaN*ones(n_ucontrasts + 1,1);
+udetmat = NaN*ones(n_ucontrasts + 1,1);
+
+%make up design matrix;
+for k = 1:nevents
     thispattern = zeros(baseveclen,1);
     thispattern(find(basevec == k)) = 1;
     span = (1:nummods) + (k-1)*nummods;
     X(:,span) = toeplitz(thispattern,[thispattern(1) zeros(1,nummods-1)]);
-  end
-		
-			  
-  %CHECK THE RANK
+end
 
-  if dobasis;% basis function expansion
+
+%CHECK THE RANK
+
+if dobasis;% basis function expansion
     X = X*B;
-  end
+end
 
-  
-  K = X'*PS*X;
-  if approxflag % note in approxflag mode, PS should be 
-           % the complementary projection onto S and not onto sqrtm(Vi)*S
+K = X'*PS*X;
+if approxflag % note in approxflag mode, PS should be
+    % the complementary projection onto S and not onto sqrtm(Vi)*S
     K = V'*K*V;
-  end
+end
 
-  if(rank(K) < size(X,2));		% rank deficient for efficiency
+
+
+if(rank(K) < size(X,2));		% rank deficient for efficiency
     effmat(1) = 0;disp('rank deficient for eff');doeff = 0;
-  else;
+else;
     doeff = 1;
-    CX = inv(K);		
-  end
-  if dobasis
+    CX = inv(K);
+end
+if dobasis
     CX = B*CX*B';
-  end
+end
 
-  G = hmat'*K*hmat;
-  if(rank(G) < nevents)
+G = hmat'*K*hmat;
+if(rank(G) < nevents)
     detmat(1) = 0;disp('rank deficient for power');dodet = 0;
-  else
+else
     dodet = 1;
     CZ = inv(G);
-  end
-		
+end
 
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % calculation of overall efficiency and contrasts
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if mode <= 1
+try
+% subplot(1,3,1);imagesc(X,[0 1]);subplot(1,3,2);imagesc(K,[-40 40]);subplot(1,3,3);imagesc(CX,1./[-20 20]);drawnow;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% calculation of overall efficiency and contrasts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if mode <= 1
     %EFFICIENCIES
-                
+    
     %efficiency and detection power of each event estimate
     for k = 1:nevents
-      span = (1:nummods) + (k-1)*nummods;
-      D = dcon(k,k,nevents);
-      if dodet
-	detmat(k+1) = D*CZ*D'* ...
-	    hnorm2;
-      end
-		  
-      if doeff
-	A = kron(D,eye(nummods));
-	effmat(k+1) = trace(A*CX*A');
-      end
+        span = (1:nummods) + (k-1)*nummods;
+        D = dcon(k,k,nevents);
+        if dodet
+            detmat(k+1) = D*CZ*D'* ...
+                hnorm2;
+        end
+        
+        if doeff
+            A = kron(D,eye(nummods));
+            effmat(k+1) = trace(A*CX*A');
+%             imagesc(A');drawnow;pause;
+        end
     end
-		
+    
     %efficiency and detection power of contrasts
     for k = 1:ncontrasts
-      span = (1:nummods) + (k-1)*nummods;
-      
-      if dodet
-	D = dcon(combos(k,1),combos(k,2),nevents);
-	detmat(k+nevents+1) = ...
-	    D*CZ*D'*hnorm2;
-      end
-      
-      if doeff
-	A = kron(D,eye(nummods));
-	effmat(k+nevents+1) = trace(A*CX*A');
-      end
+        span = (1:nummods) + (k-1)*nummods;
+        
+        if dodet
+            D = dcon(combos(k,1),combos(k,2),nevents);
+            detmat(k+nevents+1) = D*CZ*D'*hnorm2;
+        end
+        
+        if doeff
+            A = kron(D,eye(nummods));
+            effmat(k+nevents+1) = trace(A*CX*A');
+%             imagesc(A');drawnow;pause;
+        end
     end
-
+    
     % overall efficiency
     if doeff
-      effmat(1) = ...
-	  1/mean(effmat(2:neffdet));
+        effmat(1) = ...
+            1/mean(effmat(2:neffdet));
     end
     if dodet
-      detmat(1) = ...
-	  1/mean(detmat(2:neffdet));
+        detmat(1) = ...
+            1/mean(detmat(2:neffdet));
     end
-  end
+end
 
 
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % calculation of user-specified efficiency and contrasts
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  if mode >= 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% calculation of user-specified efficiency and contrasts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if mode >= 1
     for k = 1:n_ucontrasts
-      span = (1:nummods) + (k-1)*nummods;
-      if dodet
-	D = uC(k,:);
-	udetmat(k+1) = ...
-	    D*CZ*D'*hnorm2;
-      end
-      if doeff
-	A = kron(D,eye(nummods));
-	ueffmat(k+1) = trace(A*CX*A');
-      end
+        span = (1:nummods) + (k-1)*nummods;
+        if dodet
+            D = uC(k,:);
+            udetmat(k+1) = ...
+                D*CZ*D'*hnorm2;
+        end
+        if doeff
+            A = kron(D,eye(nummods));
+            ueffmat(k+1) = trace(A*CX*A');
+        end
     end
     if doeff
-      ueffmat(1) = ...
-	  1/mean(ueffmat(2:n_ucontrasts));
+        ueffmat(1) = ...
+            1/mean(ueffmat(2:n_ucontrasts));
     end
     if dodet
-      udetmat(1) = ...
-	  1/mean(udetmat(2:n_ucontrasts));
+        udetmat(1) = ...
+            1/mean(udetmat(2:n_ucontrasts));
     end
-  end
+end
 
 

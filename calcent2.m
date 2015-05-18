@@ -45,7 +45,7 @@ jointprob = pmat(:,3)/npos;
 condprob = pmat(:,4);
 ent = -sum(jointprob.*log2(condprob));
 
-keyboard;
+% keyboard;
 
 
 

@@ -1,8 +1,8 @@
-function [ent,ent0] = calcent(seq,order);
-  
-%calculate the conditional entropy of a sequence.
+function [ent,ent0,entmax] = calcent(seq,order);
+%   calculate the conditional entropy of a sequence. ENT0 will not work is
+%   null events are not defined in the code (p = 0)
 %
-% [ent,ent0] = calcent(seq,order);
+% [ent,ent0,entmax] = calcent(seq,order);
 %   
 %  Inputs
 %    seq:  design vector
@@ -11,25 +11,25 @@ function [ent,ent0] = calcent(seq,order);
 %  Outputs
 %    ent: conditional entropy
 %   ent0: ordinary entropy
+%   entmax: maximum entopy of the sequence
 %
 % send questions to ttliu@ucsd.edu  
-
-seq = seq(:);
-nevents = max(seq);  
-b = nevents + 1;
-seqlen = length(seq);
+%%
+seq     = seq(:);
+seqlen  = length(seq);
+nevents = max(seq);
+b       = nevents + 1;
 basevec = b.^((order-1):-1:0);
-
-npos = seqlen-order;
-
-codes = NaN*ones(npos,1);         %conditional codes
+npos    = seqlen-order;
+%%
+codes   = NaN*ones(npos,1);       %conditional codes
 results = seq((order+1):seqlen);  %resulting code
 
-for k = 1:npos
+for k = 1:npos    
   codes(k) = basevec*seq(k+(0:(order-1)));
 end
 
-% sort the codes
+%% sort the codes
 [scodes,icodes] = sort(codes);
 % determine how many distinct codes there are
 % in the sequence, this is necessary when nevents and order are large
@@ -57,18 +57,20 @@ for icode = 1:ncodes
 end
 
 jointprob = pmat(:,3)/npos;
-condprob = pmat(:,4);
-ent = -sum(jointprob.*log2(condprob));
+condprob  = pmat(:,4);
+ent       = -sum(jointprob.*log2(condprob));
 
-% also calculate ordinary entropy
+%% also calculate ordinary entropy
 codeprob = NaN*ones(b,1);
 for ii = 1:b;
   codeprob(ii) = sum(seq == ii-1);
-end;  
+end
 codeprob = codeprob/seqlen;
 ent0 = -sum(codeprob.*log2(codeprob));
 
+%% also compute max possible entropy
 
+entmax = log2(b);
 
 
 
